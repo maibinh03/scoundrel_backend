@@ -15,13 +15,18 @@ class Game:
     def create_room(self) -> list[Card] | None:
         required_cards = 3 if self.carried_card is not None else 4
         if len(self.deck.play_deck) < required_cards:
-            self.deck.play_deck.clear()
+            self.deck.play_deck.clear()  # Bỏ hết các lá cuối cùng thì có nên cộng điểm không nhỉ
             self.carried_card = None
             return None
 
         if self.carried_card is not None:
-            room = [self.carried_card, *self.deck.play_deck[:3]]
-            del self.deck.play_deck[:3]
+            room = [
+                self.carried_card,
+                *self.deck.play_deck[:3],
+            ]  # * là dấu giải nén để các lá được chọn nằm cùng cấp với carried card
+            del self.deck.play_deck[
+                :3
+            ]  # Đơn giản hơn là for _ in range(3): self.deck.play_deck.remove(0)
             self.carried_card = None
         else:
             room = self.deck.play_deck[:4]
@@ -44,9 +49,17 @@ class Game:
         if any(action not in range(len(room)) for action in actions):
             raise ValueError("Vị trí lá bài không hợp lệ.")
 
+            # # Chuyển actions thành set để tìm kiếm với tốc độ O(1)
+            # actions_set = set(actions)
+
+            # self.carried_card = next(
+            #     (card for index, card in enumerate(room) if index not in actions_set),
+            #     # None,
+            # )
+
         self.carried_card = next(
-            card for index, card in enumerate(room) if index not in actions
-        )
+            (card for index, card in enumerate(room) if index not in actions), None
+        )  # Lazy loop: Trả lại phần tử đầu tiên tìm thấy để tối ưu hiệu năng.
         self.can_skip = True
         selected_cards = [room[action] for action in actions]
         for card in selected_cards:
@@ -60,7 +73,6 @@ class Game:
                 if self.player.health == 0:
                     self.end_reason = "health_depleted"
                     return False
-
         return True
 
     def gameloop(self) -> None:
@@ -71,9 +83,13 @@ class Game:
                 break
 
             self.print_room(room)
-            if self.can_skip and input(
-                "Nhập 'skip' để bỏ qua room, hoặc nhấn Enter để chọn bài: "
-            ).strip().lower() == "skip":
+            if (
+                self.can_skip
+                and input("Nhập 'skip' để bỏ qua room, hoặc nhấn Enter để chọn bài: ")
+                .strip()
+                .lower()
+                == "skip"
+            ):
                 self.handle_action([], room)
                 continue
 
@@ -90,9 +106,7 @@ class Game:
         actions: list[int] = []
         while len(actions) < 3:
             try:
-                action = int(
-                    input(f"Chọn vị trí lá bài (1-{room_size}): ")
-                ) - 1
+                action = int(input(f"Chọn vị trí lá bài (1-{room_size}): ")) - 1
             except ValueError:
                 print(f"Vui lòng nhập số từ 1 đến {room_size}.")
                 continue
